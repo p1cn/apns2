@@ -173,6 +173,10 @@ func (p *Payload) AlertBody(body string) *Payload {
 	return p
 }
 
+func (p *Payload) GetAlertBody() string {
+	return p.aps().alert().Body
+}
+
 // AlertLaunchImage sets the aps launch image on the payload.
 // This is the filename of an image file in the app bundle. The image is used
 // as the launch image when users tap the action button or move the action

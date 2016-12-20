@@ -4,9 +4,11 @@
 package apns2
 
 import (
+	"backend/slog"
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -94,17 +96,23 @@ func (c *Client) Production() *Client {
 // indicating whether the notification was accepted or rejected by the APNs
 // gateway, or an error if something goes wrong.
 func (c *Client) Push(n *Notification) (*Response, error) {
+	if n == nil {
+		//slog.Err("nil push notification")
+		return nil, errors.New("nil push notification")
+	}
 	payload, err := json.Marshal(n)
 
 	if err != nil {
 		return nil, err
 	}
+	slog.Info("APNS2 PUSH BODY: %s", payload)
 
 	url := fmt.Sprintf("%v/3/device/%v", c.Host, n.DeviceToken)
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	setHeaders(req, n)
 	httpRes, err := c.HTTPClient.Do(req)
 	if err != nil {
+		slog.Err("%+v", err)
 		return nil, err
 	}
 	defer httpRes.Body.Close()
@@ -115,8 +123,12 @@ func (c *Client) Push(n *Notification) (*Response, error) {
 
 	decoder := json.NewDecoder(httpRes.Body)
 	if err := decoder.Decode(&response); err != nil && err != io.EOF {
+		slog.Err("APNS2 PUSH RESPONSE error : %v", err)
 		return &Response{}, err
 	}
+
+	slog.Info("APNS2 PUSH RESPONSE: %v", response)
+
 	return response, nil
 }
 
